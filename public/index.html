@@ -3,10 +3,29 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Palabrear</title>
-<meta name="description" content="Wordle por turnos para jugar con amigos: cada uno escribe una palabra y el resto la descubre." />
+<title>Palabrear · Wordle multijugador en español para jugar con amigos</title>
+<meta name="description" content="Palabrear es un juego de palabras online y gratis, estilo Wordle, para jugar con amigos en español: cada uno elige una palabra y el resto la adivina por turnos. Sin registro." />
+<link rel="canonical" href="__CANONICA__/" />
+<meta name="robots" content="index, follow" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Palabrear",
+  "url": "__CANONICA__/",
+  "description": "Juego de palabras multijugador estilo Wordle en español: cada jugador elige una palabra y el resto la adivina por turnos.",
+  "applicationCategory": "GameApplication",
+  "genre": "Juego de palabras",
+  "inLanguage": "es",
+  "operatingSystem": "Cualquiera (navegador web)",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "Rafael Encina", "url": "https://rafaelencina.vercel.app" }
+}
+</script>
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Palabrear" />
+<meta property="og:url" content="__CANONICA__/" />
 <meta property="og:title" content="¡Te invitaron a jugar Palabrear!" />
 <meta property="og:description" content="Wordle por turnos con amigos: cada uno escribe una palabra y el resto la descubre. Entra a la sala y juega." />
 <meta property="og:image" content="__ORIGEN__/og.png" />
@@ -38,11 +57,11 @@
 <main id="vista-inicio" class="vista portada">
   <header class="marca">
     <button id="btn-tema-inicio" class="tema" type="button" title="Cambiar a modo oscuro" aria-label="Cambiar tema">🌙</button>
-    <h1 class="marca__titulo">
+    <h1 class="marca__titulo" aria-label="Palabrear">
       <span class="ficha ficha--correcta">P</span><span class="ficha">a</span><span class="ficha ficha--presente">l</span><span class="ficha">a</span><span class="ficha ficha--correcta">b</span><span class="ficha">r</span><span class="ficha">e</span><span class="ficha ficha--presente">a</span><span class="ficha">r</span>
     </h1>
     <p class="marca__bajada">
-      Wordle por turnos. Cada uno elige una palabra, el resto la descubre.
+      Wordle multijugador por turnos. Cada uno elige una palabra, el resto la descubre.
       Mientras menos intentos te tome, más puntos.
     </p>
     <button id="btn-jugar" class="boton boton--primario boton--jugar" type="button">Jugar</button>
@@ -139,8 +158,61 @@
     <ul id="lista-salas" class="lista-salas"></ul>
   </section>
 
-  <footer class="pie">Hecho para jugar con amigos · Palabrear · Creado por <a href="https://rafaelencina.vercel.app" target="_blank" rel="noopener">Rafael Encina</a></footer>
+  <section class="tarjeta como-jugar">
+    <h2 class="tarjeta__titulo">Cómo se juega Palabrear</h2>
+    <p>
+      Palabrear es un juego de palabras online y gratis, inspirado en Wordle, pensado para jugar con amigos
+      en español. No necesitas registrarte ni instalar nada: crea una sala, comparte el enlace y listo.
+    </p>
+    <ol>
+      <li><strong>Crea una sala</strong> pública o privada y comparte el código con tus amigos.</li>
+      <li><strong>Por turnos</strong>, un jugador escribe una palabra secreta (de 5 letras como en Wordle, o de 3 a 12) y puede dejar una pista.</li>
+      <li><strong>El resto la adivina</strong>: cada intento muestra en <span class="txt-correcta">verde</span> las letras en su lugar, en <span class="txt-presente">amarillo</span> las que están en otra posición y en gris las que no aparecen.</li>
+      <li><strong>Suma puntos</strong>: mientras menos intentos te tome, más puntos ganas. Quien escribió la palabra también suma si alguien la descubre.</li>
+    </ol>
+    <p>
+      Hay dos modos de juego: <strong>por tiempo</strong>, donde todos juegan hasta acertar o hasta que se acabe el reloj,
+      y <strong>el primero que adivine</strong>, donde el turno termina con el primer acierto.
+    </p>
+  </section>
+
+  <footer class="pie">
+    Hecho para jugar con amigos · Palabrear · Creado por <a href="https://rafaelencina.vercel.app" target="_blank" rel="noopener">Rafael Encina</a>
+    <div><button id="btn-donar" class="boton boton--donar boton--chico" type="button">💛 Apoyar al creador</button></div>
+  </footer>
 </main>
+
+<!-- ============ DIALOGOS ============ -->
+<dialog id="dlg-nombre" class="dialogo">
+  <form method="dialog" id="form-nombre">
+    <h2 class="dialogo__titulo">Te invitaron a una sala</h2>
+    <p class="dialogo__texto">Sala <strong id="dlg-nombre-codigo"></strong>. ¿Con qué nombre quieres jugar?</p>
+    <label class="campo">
+      <span class="campo__rotulo">Tu nombre</span>
+      <input id="dlg-nombre-input" type="text" maxlength="16" placeholder="Rafa" autocomplete="nickname" required />
+    </label>
+    <p id="dlg-nombre-error" class="error" hidden></p>
+    <div class="acciones">
+      <button class="boton boton--primario" type="submit" value="entrar">Entrar a la sala</button>
+      <button id="dlg-nombre-cancelar" class="boton boton--fantasma" type="button">Ahora no</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-donar" class="dialogo">
+  <form method="dialog">
+    <h2 class="dialogo__titulo">💛 Apoya Palabrear</h2>
+    <p class="dialogo__texto">
+      Esta página no contiene anuncios, la idea es que te diviertas, no que compres algo en AliExpress.
+      Si deseas expresar tu apoyo y agradecimiento, puedes donar
+      <a id="enlace-donar" href="https://ko-fi.com/rafaelencina" target="_blank" rel="noopener">aquí</a>.
+    </p>
+    <div class="acciones">
+      <a class="boton boton--primario" href="https://ko-fi.com/rafaelencina" target="_blank" rel="noopener" id="boton-donar-ir">Donar</a>
+      <button class="boton boton--fantasma" type="submit">Cerrar</button>
+    </div>
+  </form>
+</dialog>
 
 <!-- ============ SALA ============ -->
 <main id="vista-sala" class="vista" hidden>

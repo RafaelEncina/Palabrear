@@ -455,6 +455,12 @@ socket.on('connect', () => {
   const guardada = localStorage.getItem('palabrear:sala');
   const delEnlace = location.hash.replace('#', '').toUpperCase();
   const codigo = delEnlace || guardada;
+  // Invitacion nueva (no es una reconexion a mi sala): primero pedir el nombre.
+  if (delEnlace && delEnlace !== guardada && /^[A-Z0-9]{4,6}$/.test(delEnlace) && !estado) {
+    pedirNombreInvitacion(delEnlace);
+    pedirSalas();
+    return;
+  }
   if (codigo && /^[A-Z0-9]{4,6}$/.test(codigo)) {
     socket.emit('unirse', { codigo, nombre: miNombre() }, (r) => {
       if (!r || !r.ok) {
@@ -838,6 +844,58 @@ $('btn-jugar').addEventListener('click', () => {
   setTimeout(() => vista.classList.remove('entrando'), 1300);
   $('in-nombre').focus({ preventScroll: true });
 });
+
+/* ---------- invitacion: pedir nombre antes de entrar ---------- */
+
+function pedirNombreInvitacion(codigo) {
+  const dlg = $('dlg-nombre');
+  if (dlg.open) return;
+  $('dlg-nombre-codigo').textContent = codigo;
+  $('dlg-nombre-input').value = localStorage.getItem('palabrear:nombre') || '';
+  $('dlg-nombre-error').hidden = true;
+  dlg.dataset.codigo = codigo;
+  dlg.showModal();
+  $('dlg-nombre-input').focus();
+}
+
+$('form-nombre').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const dlg = $('dlg-nombre');
+  const nombre = $('dlg-nombre-input').value.trim();
+  const error = $('dlg-nombre-error');
+  if (!nombre) {
+    error.textContent = 'Escribe tu nombre para entrar.';
+    error.hidden = false;
+    return;
+  }
+  $('in-nombre').value = nombre;
+  socket.emit('unirse', { codigo: dlg.dataset.codigo, nombre: miNombre() }, (r) => {
+    if (!r || !r.ok) {
+      error.textContent = (r && r.error) || 'No se pudo entrar a la sala.';
+      error.hidden = false;
+      return;
+    }
+    localStorage.setItem('palabrear:sala', r.codigo);
+    dlg.close();
+  });
+});
+
+$('dlg-nombre-cancelar').addEventListener('click', () => {
+  const dlg = $('dlg-nombre');
+  $('in-codigo').value = dlg.dataset.codigo || '';
+  dlg.close();
+  location.hash = '';
+});
+
+/* ---------- donacion ---------- */
+
+$('btn-donar').addEventListener('click', () => $('dlg-donar').showModal());
+for (const dlg of document.querySelectorAll('.dialogo')) {
+  // Clic fuera del cuadro lo cierra (salvo el del nombre, que tiene sus botones).
+  dlg.addEventListener('click', (e) => {
+    if (e.target === dlg && dlg.id === 'dlg-donar') dlg.close();
+  });
+}
 
 /* arranque */
 mostrarVista('inicio');

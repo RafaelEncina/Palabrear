@@ -616,18 +616,18 @@ input:disabled { opacity: 0.5; }
 
 /* Portada: solo el titulo y el boton "Jugar" hasta que se presiona. */
 .boton--jugar { display: none; }
-.portada {
-  min-height: 100vh;
-  min-height: 100dvh;
+.portada > :not(.marca):not(.pie):not(.como-jugar) { display: none !important; }
+/* La portada ocupa la pantalla; "Cómo se juega" queda visible al bajar. */
+.portada .marca {
+  min-height: calc(100dvh - 48px);
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
+  margin: 0;
 }
-.portada > :not(.marca):not(.pie) { display: none !important; }
-.portada .marca { margin: auto 0; }
 .portada .marca .tema { position: absolute; top: 16px; right: 16px; margin: 0; }
 .portada .marca__titulo { font-size: clamp(1.6rem, 9vw, 3.6rem); margin-bottom: 18px; }
-.portada .marca__bajada { display: none; }
 .portada .boton--jugar {
   display: inline-flex;
   margin-top: 28px;
@@ -645,11 +645,9 @@ input:disabled { opacity: 0.5; }
 }
 
 /* Al salir de la portada, el resto del inicio aparece de a poco. */
-.entrando > :not(.marca),
-.entrando .marca__bajada {
+.entrando > :not(.marca):not(.como-jugar) {
   animation: aparecer 0.5s ease-out both;
 }
-.entrando .marca__bajada { animation-delay: 0.35s; }
 .entrando > .tarjeta { animation-delay: 0.45s; }
 .entrando > :nth-child(3) { animation-delay: 0.55s; }
 .entrando > :nth-child(4) { animation-delay: 0.65s; }
@@ -698,3 +696,39 @@ input:disabled { opacity: 0.5; }
   border: 1px solid transparent;
 }
 .mini__vacio { color: var(--suave); }
+
+/* Seccion "Cómo se juega" */
+.como-jugar p, .como-jugar li { color: var(--suave); line-height: 1.55; }
+.como-jugar p { margin: 0 0 12px; }
+.como-jugar ol { margin: 0 0 12px; padding-left: 1.3em; }
+.como-jugar li { margin-bottom: 6px; }
+.como-jugar strong { color: var(--texto); }
+.txt-correcta { color: var(--ok-texto); font-weight: 700; }
+.txt-presente { color: #a87a00; font-weight: 700; }
+:root[data-tema="oscuro"] .txt-presente { color: var(--presente); }
+
+/* Dialogos (nombre por invitacion, donacion) */
+.dialogo {
+  width: min(440px, calc(100vw - 32px));
+  padding: 22px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--panel);
+  color: var(--texto);
+  box-shadow: var(--sombra);
+}
+.dialogo::backdrop { background: rgba(20, 16, 12, 0.45); backdrop-filter: blur(2px); }
+.dialogo[open] { animation: aparecer 0.25s ease-out; }
+.dialogo__titulo { margin: 0 0 10px; font-size: 1.2rem; }
+.dialogo__texto { margin: 0 0 16px; color: var(--suave); line-height: 1.55; }
+.dialogo__texto a { color: var(--acento); font-weight: 700; }
+.dialogo .acciones a.boton { text-decoration: none; display: inline-flex; align-items: center; }
+
+.pie .boton--donar {
+  margin-top: 12px;
+  background: rgba(242, 183, 5, 0.14);
+  border: 1px solid rgba(242, 183, 5, 0.5);
+  color: var(--texto);
+  font-weight: 600;
+}
+.pie .boton--donar:hover { background: rgba(242, 183, 5, 0.26); }

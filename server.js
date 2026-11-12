@@ -14,13 +14,43 @@ const app = express();
 const servidor = http.createServer(app);
 const io = new Server(servidor);
 
-// La portada se sirve con la URL absoluta de la imagen de vista previa (og:image),
-// porque WhatsApp, Discord, etc. no aceptan rutas relativas.
+// URL publica oficial (ej. https://palabrear.com). Si esta definida, se usa como
+// direccion canonica y las visitas a otros dominios (ej. *.onrender.com) se redirigen.
+const URL_PUBLICA = (process.env.URL_PUBLICA || '').replace(/\/+$/, '');
+const HOST_PUBLICO = URL_PUBLICA ? new URL(URL_PUBLICA).host : null;
+
+const origenDe = (req) => `${req.get('x-forwarded-proto') || req.protocol}://${req.get('host')}`;
+const canonicaDe = (req) => URL_PUBLICA || origenDe(req);
+
+app.use((req, res, next) => {
+  const host = req.get('host') || '';
+  const local = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
+  const omitir = req.path.startsWith('/socket.io') || req.path === '/salud';
+  if (HOST_PUBLICO && host !== HOST_PUBLICO && !local && !omitir && req.method === 'GET') {
+    return res.redirect(301, URL_PUBLICA + req.originalUrl);
+  }
+  next();
+});
+
+// La portada se sirve con URLs absolutas (og:image, canonical), porque buscadores
+// y apps como WhatsApp o Discord no aceptan rutas relativas.
 const fs = require('fs');
 const PORTADA = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
 app.get(['/', '/index.html'], (req, res) => {
-  const proto = req.get('x-forwarded-proto') || req.protocol;
-  res.type('html').send(PORTADA.replaceAll('__ORIGEN__', `${proto}://${req.get('host')}`));
+  res
+    .type('html')
+    .send(PORTADA.replaceAll('__ORIGEN__', canonicaDe(req)).replaceAll('__CANONICA__', canonicaDe(req)));
+});
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /salud\n\nSitemap: ${canonicaDe(req)}/sitemap.xml\n`);
+});
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml').send(
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+      `  <url><loc>${canonicaDe(req)}/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>\n` +
+      '</urlset>\n'
+  );
 });
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.get('/salud', (_req, res) => res.json({ ok: true, salas: salas.size }));

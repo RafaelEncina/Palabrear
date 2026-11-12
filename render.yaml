@@ -10,3 +10,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      # Cuando tengas dominio propio, descomenta esto: se usa como URL canonica
+      # y redirige palabrear.onrender.com -> palabrear.com.
+      # - key: URL_PUBLICA
+      #   value: https://palabrear.com
