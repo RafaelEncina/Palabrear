@@ -5,8 +5,8 @@
   --borde: #39353f;
   --texto: #f3f0ea;
   --suave: #a39db0;
-  --acento: #ff7a59;
-  --acento-oscuro: #e0613f;
+  --acento: #dcc09a;
+  --acento-oscuro: #c6a67c;
   --correcta: #5fb45f;
   --presente: #d9a33c;
   --ausente: #46424f;
@@ -22,7 +22,7 @@ html, body { height: 100%; }
 body {
   margin: 0;
   background:
-    radial-gradient(1100px 600px at 12% -10%, rgba(255, 122, 89, 0.12), transparent 60%),
+    radial-gradient(1100px 600px at 12% -10%, rgba(220, 192, 154, 0.11), transparent 60%),
     radial-gradient(900px 500px at 95% 0%, rgba(95, 180, 95, 0.09), transparent 55%),
     var(--tinta);
   color: var(--texto);
@@ -101,7 +101,7 @@ input[type="text"], input[type="number"] {
 
 input[type="text"]:focus, input[type="number"]:focus {
   border-color: var(--acento);
-  box-shadow: 0 0 0 3px rgba(255, 122, 89, 0.18);
+  box-shadow: 0 0 0 3px rgba(220, 192, 154, 0.22);
 }
 
 .input-codigo, .input-palabra {
@@ -142,7 +142,7 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--acento); width
 .boton--primario {
   background: var(--acento);
   border-color: var(--acento);
-  color: #221009;
+  color: #2b2019;
   font-weight: 700;
 }
 .boton--primario:hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
@@ -370,7 +370,7 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--acento); width
   color: var(--suave);
   white-space: nowrap;
 }
-.insignia--escritor { background: rgba(255, 122, 89, 0.16); border-color: rgba(255, 122, 89, 0.4); color: #ffb7a2; }
+.insignia--escritor { background: rgba(220, 192, 154, 0.16); border-color: rgba(220, 192, 154, 0.42); color: #e9d6b8; }
 .insignia--ok { background: rgba(95, 180, 95, 0.16); border-color: rgba(95, 180, 95, 0.4); color: #a8e0a8; }
 
 .lateral { display: grid; gap: 14px; }
@@ -419,7 +419,7 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--acento); width
   border-radius: 12px;
   text-align: left;
 }
-.podio li:first-child { border-color: var(--acento); background: rgba(255, 122, 89, 0.1); }
+.podio li:first-child { border-color: var(--acento); background: rgba(220, 192, 154, 0.09); }
 .podio .puesto { font-size: 1.3rem; font-weight: 700; width: 1.6em; text-align: center; }
 .podio .quien { flex: 1; min-width: 0; }
 .podio .detalle { display: block; color: var(--suave); font-size: 0.8rem; }
