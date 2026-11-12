@@ -77,6 +77,33 @@ function puntajeEscritor(cuantosAcertaron) {
   return 15 * cuantosAcertaron;
 }
 
+/* --- modo "el primero que adivine" --- */
+
+const PUNTOS_PRIMERO = 100; // se lleva todo el que acierta primero
+const PUNTOS_VERDE = 8; // consuelo por cada letra en su lugar
+const PUNTOS_AMARILLO = 4; // consuelo por cada letra que estaba pero mal puesta
+const TOPE_CONSUELO = 80; // el consuelo nunca alcanza al ganador
+const PUNTOS_ESCRITOR_PRIMERO = 20;
+
+/**
+ * Consuelo para quien no llego a acertar: se mira su MEJOR intento
+ * (el que mas verdes y amarillas junto) y se paga por esas letras.
+ */
+function puntajePistas(intentos = []) {
+  let mejor = { puntos: 0, verdes: 0, amarillas: 0 };
+  for (const intento of intentos) {
+    let verdes = 0;
+    let amarillas = 0;
+    for (const f of intento.feedback) {
+      if (f === 'correcta') verdes++;
+      else if (f === 'presente') amarillas++;
+    }
+    const puntos = Math.min(TOPE_CONSUELO, verdes * PUNTOS_VERDE + amarillas * PUNTOS_AMARILLO);
+    if (puntos > mejor.puntos) mejor = { puntos, verdes, amarillas };
+  }
+  return mejor;
+}
+
 function mezclar(lista) {
   const copia = lista.slice();
   for (let i = copia.length - 1; i > 0; i--) {
@@ -100,10 +127,15 @@ function limpiarConfig(config = {}) {
     if (Number.isNaN(x)) return def;
     return Math.min(max, Math.max(min, x));
   };
+  const modo = config.modo === 'primero' ? 'primero' : 'tiempo';
+  let segundos = n(config.segundosPorTurno, 180, 0, 900); // 0 = sin limite
+  // En el modo por tiempo el reloj es la gracia, asi que no puede ir en cero.
+  if (modo === 'tiempo' && segundos < 30) segundos = 180;
   return {
+    modo,
     rondas: n(config.rondas, 2, 1, 10),
     maxJugadores: n(config.maxJugadores, 6, 2, 12),
-    segundosPorTurno: n(config.segundosPorTurno, 180, 0, 900), // 0 = sin limite
+    segundosPorTurno: segundos,
     pistaObligatoria: Boolean(config.pistaObligatoria),
   };
 }
@@ -215,6 +247,8 @@ class Sala {
       intentos: {},
       resueltos: [],
       rendidos: [],
+      consuelos: [],
+      puntosEscritor: 0,
       venceEn: null,
     };
     const escritor = this.jugador(escritorId);
@@ -286,13 +320,16 @@ class Sala {
     const acerto = feedback.every((f) => f === 'correcta');
     if (acerto) {
       const esPrimero = this.turno.resueltos.length === 0;
-      const puntos = puntajeAdivinador(mios.length, esPrimero);
+      const alPrimero = this.config.modo === 'primero';
+      const puntos = alPrimero ? PUNTOS_PRIMERO : puntajeAdivinador(mios.length, esPrimero);
       jugador.puntos += puntos;
       jugador.palabrasAcertadas += 1;
       this.turno.resueltos.push({ id, intentos: mios.length, puntos, esPrimero });
       this.anotar(
-        `${jugador.nombre} descubrió la palabra en ${mios.length} intento(s): +${puntos} puntos.` +
-          (esPrimero ? ' (¡primero!)' : '')
+        alPrimero
+          ? `${jugador.nombre} llegó primero en ${mios.length} intento(s) y se lleva ${puntos} puntos.`
+          : `${jugador.nombre} descubrió la palabra en ${mios.length} intento(s): +${puntos} puntos.` +
+            (esPrimero ? ' (¡primero!)' : '')
       );
     }
 
@@ -323,7 +360,10 @@ class Sala {
   }
 
   get turnoCompleto() {
-    return this.fase === FASES.ADIVINANDO && this.pendientes.length === 0;
+    if (this.fase !== FASES.ADIVINANDO) return false;
+    // En "el primero que adivine" el turno se corta apenas alguien acierta.
+    if (this.config.modo === 'primero' && this.turno.resueltos.length > 0) return true;
+    return this.pendientes.length === 0;
   }
 
   get tiempoAgotado() {
@@ -342,8 +382,31 @@ class Sala {
       this.turno.palabra = this.turno.palabra || '';
     } else {
       const acertaron = this.turno.resueltos.length;
-      const puntos = puntajeEscritor(acertaron);
+      const alPrimero = this.config.modo === 'primero';
+
+      // En "el primero que adivine", el resto cobra por las letras que llevaba.
+      if (alPrimero) {
+        this.turno.consuelos = [];
+        for (const j of this.jugadores) {
+          if (j.id === this.turno.escritorId) continue;
+          if (this.turno.resueltos.some((r) => r.id === j.id)) continue;
+          const pista = puntajePistas(this.turno.intentos[j.id] || []);
+          j.puntos += pista.puntos;
+          this.turno.consuelos.push({ id: j.id, ...pista });
+        }
+        const conConsuelo = this.turno.consuelos.filter((c) => c.puntos > 0).length;
+        if (conConsuelo) {
+          this.anotar(
+            `${conConsuelo === 1 ? '1 jugador suma' : `${conConsuelo} jugadores suman`} ` +
+              'puntos por las letras que llevaban.'
+          );
+        }
+      }
+
+      const puntos = alPrimero ? (acertaron ? PUNTOS_ESCRITOR_PRIMERO : 0) : puntajeEscritor(acertaron);
+      this.turno.puntosEscritor = puntos;
       if (escritor) escritor.puntos += puntos;
+
       if (acertaron === 0) {
         this.anotar(
           `Nadie descubrió "${this.turno.palabra}". ${escritor ? escritor.nombre : '?'} no suma puntos.`
@@ -460,6 +523,11 @@ class Sala {
             ...r,
             nombre: (this.jugador(r.id) || {}).nombre || '?',
           })),
+          consuelos: (this.turno.consuelos || []).map((c) => ({
+            ...c,
+            nombre: (this.jugador(c.id) || {}).nombre || '?',
+          })),
+          puntosEscritor: this.turno.puntosEscritor || 0,
           rendidos: this.turno.rendidos,
           progreso: this.jugadores
             .filter((j) => j.id !== this.turno.escritorId)
@@ -510,6 +578,7 @@ class Sala {
       jugadores: this.jugadores.length,
       maxJugadores: this.config.maxJugadores,
       rondas: this.config.rondas,
+      modo: this.config.modo,
       fase: this.fase,
       enJuego: this.fase !== FASES.LOBBY && this.fase !== FASES.FIN,
     };
@@ -527,6 +596,8 @@ module.exports = {
   evaluarIntento,
   puntajeAdivinador,
   puntajeEscritor,
+  puntajePistas,
+  PUNTOS_PRIMERO,
   generarCodigo,
   limpiarConfig,
 };

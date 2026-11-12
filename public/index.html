@@ -5,7 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Palabrear</title>
 <meta name="description" content="Wordle por turnos para jugar con amigos: cada uno escribe una palabra y el resto la descubre." />
-<meta name="theme-color" content="#141318" />
+<meta name="theme-color" content="#f7f2e9" />
+<script>
+  // Antes de pintar, para que no parpadee el tema al recargar.
+  try {
+    if (localStorage.getItem('palabrear:tema') === 'oscuro') {
+      document.documentElement.dataset.tema = 'oscuro';
+    }
+  } catch (e) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -17,6 +25,7 @@
 <!-- ============ INICIO ============ -->
 <main id="vista-inicio" class="vista">
   <header class="marca">
+    <button id="btn-tema-inicio" class="tema" type="button" title="Cambiar a modo oscuro" aria-label="Cambiar tema">🌙</button>
     <h1 class="marca__titulo">
       <span class="ficha ficha--correcta">P</span><span class="ficha">a</span><span class="ficha ficha--presente">l</span><span class="ficha">a</span><span class="ficha ficha--correcta">b</span><span class="ficha">r</span><span class="ficha">e</span><span class="ficha ficha--presente">a</span><span class="ficha">r</span>
     </h1>
@@ -48,6 +57,26 @@
       <span class="campo__rotulo">Nombre de la sala <em>(opcional)</em></span>
       <input id="in-nombre-sala" type="text" maxlength="40" placeholder="Los del jueves" />
     </label>
+    <fieldset class="campo">
+      <span class="campo__rotulo">Modo de juego</span>
+      <div class="opciones opciones--apiladas">
+        <label>
+          <input type="radio" name="modo" value="tiempo" checked />
+          <span>
+            <strong>Por tiempo</strong>
+            <small>Todos juegan hasta acertar o hasta que se acabe el reloj. Mientras menos intentos, más puntos.</small>
+          </span>
+        </label>
+        <label>
+          <input type="radio" name="modo" value="primero" />
+          <span>
+            <strong>El primero que adivine</strong>
+            <small>El turno se corta con el primer acierto: ese se lleva 100 puntos y el resto cobra por las verdes y amarillas que llevaba.</small>
+          </span>
+        </label>
+      </div>
+    </fieldset>
+
     <div class="grilla-config">
       <label class="campo">
         <span class="campo__rotulo">Rondas</span>
@@ -106,6 +135,7 @@
     <div class="barra__der">
       <span id="sala-progreso" class="pildora"></span>
       <span id="sala-reloj" class="pildora pildora--reloj" hidden></span>
+      <button id="btn-tema-sala" class="tema" type="button" title="Cambiar a modo oscuro" aria-label="Cambiar tema">🌙</button>
     </div>
   </header>
 
@@ -120,6 +150,13 @@
         </p>
         <div id="lobby-config" class="resumen-config"></div>
         <div id="lobby-host-config" hidden>
+          <fieldset class="campo">
+            <span class="campo__rotulo">Modo de juego</span>
+            <div class="opciones">
+              <label><input type="radio" name="cfg-modo" value="tiempo" /> Por tiempo</label>
+              <label><input type="radio" name="cfg-modo" value="primero" /> El primero que adivine</label>
+            </div>
+          </fieldset>
           <div class="grilla-config grilla-config--compacta">
             <label class="campo">
               <span class="campo__rotulo">Rondas</span>
@@ -175,6 +212,7 @@
             <strong id="adivinar-escritor"></strong> eligió una palabra de
             <strong id="adivinar-largo"></strong> letras
           </p>
+          <p id="adivinar-modo" class="dato"></p>
           <p id="adivinar-pista" class="pista" hidden></p>
         </div>
         <div id="tablero" class="tablero" aria-live="polite"></div>
@@ -188,7 +226,7 @@
       <!-- adivinando: vista del escritor -->
       <div id="fase-mirando" class="panel" hidden>
         <h2 class="panel__titulo">Tu palabra: <span id="mirando-palabra" class="palabra-revelada"></span></h2>
-        <p class="panel__texto panel__texto--suave">Ganas 15 puntos por cada jugador que la descubra.</p>
+        <p id="mirando-nota" class="panel__texto panel__texto--suave"></p>
         <ul id="mirando-progreso" class="progreso"></ul>
         <div class="acciones">
           <button id="btn-cortar" class="boton boton--fantasma boton--chico">Cerrar el turno ya</button>

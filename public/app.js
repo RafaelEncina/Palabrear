@@ -16,6 +16,36 @@ function idPersistente() {
 
 const socket = io({ auth: { jugadorId: idPersistente() } });
 
+/* ---------- tema (claro por defecto) ---------- */
+
+function temaActual() {
+  return document.documentElement.dataset.tema === 'oscuro' ? 'oscuro' : 'claro';
+}
+
+function aplicarTema(tema) {
+  if (tema === 'oscuro') document.documentElement.dataset.tema = 'oscuro';
+  else delete document.documentElement.dataset.tema;
+  try {
+    localStorage.setItem('palabrear:tema', tema);
+  } catch (e) {}
+  const oscuro = tema === 'oscuro';
+  const color = document.querySelector('meta[name="theme-color"]');
+  if (color) color.setAttribute('content', oscuro ? '#141318' : '#f7f2e9');
+  for (const id of ['btn-tema-inicio', 'btn-tema-sala']) {
+    const btn = $(id);
+    if (!btn) continue;
+    btn.textContent = oscuro ? '☀️' : '🌙';
+    btn.title = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  }
+}
+
+for (const id of ['btn-tema-inicio', 'btn-tema-sala']) {
+  const btn = $(id);
+  if (btn) btn.addEventListener('click', () => aplicarTema(temaActual() === 'oscuro' ? 'claro' : 'oscuro'));
+}
+
+aplicarTema(temaActual());
+
 let estado = null;        // ultimo estado recibido del servidor
 let borrador = '';        // letras que estoy tecleando
 let filasPintadas = 0;    // para animar solo la fila nueva
@@ -66,6 +96,7 @@ $('btn-crear').addEventListener('click', () => {
       nombreSala: $('in-nombre-sala').value.trim(),
       visibilidad: document.querySelector('input[name="visibilidad"]:checked').value,
       config: {
+        modo: document.querySelector('input[name="modo"]:checked').value,
         rondas: $('in-rondas').value,
         maxJugadores: $('in-max').value,
         segundosPorTurno: $('in-tiempo').value,
@@ -121,9 +152,9 @@ function pedirSalas() {
       }`;
       const meta = document.createElement('div');
       meta.className = 'sala__meta';
-      meta.textContent = `${sala.jugadores}/${sala.maxJugadores} jugadores · ${plural(sala.rondas, 'ronda', 'rondas')} · ${
-        sala.enJuego ? 'jugando' : 'esperando'
-      }`;
+      meta.textContent =
+        `${sala.jugadores}/${sala.maxJugadores} jugadores · ${plural(sala.rondas, 'ronda', 'rondas')} · ` +
+        `${nombreModo(sala.modo).toLowerCase()} · ${sala.enJuego ? 'jugando' : 'esperando'}`;
       izq.append(titulo, meta);
 
       const btn = document.createElement('button');
@@ -140,6 +171,10 @@ function pedirSalas() {
 
 function plural(n, singular, pluralForma) {
   return `${n} ${n === 1 ? singular : pluralForma}`;
+}
+
+function nombreModo(modo) {
+  return modo === 'primero' ? 'El primero que adivine' : 'Por tiempo';
 }
 
 function escapar(texto) {
@@ -181,6 +216,7 @@ $('btn-guardar-config').addEventListener('click', () => {
   socket.emit(
     'config',
     {
+      modo: (document.querySelector('input[name="cfg-modo"]:checked') || {}).value,
       rondas: $('cfg-rondas').value,
       maxJugadores: $('cfg-max').value,
       segundosPorTurno: $('cfg-tiempo').value,
@@ -444,19 +480,23 @@ function pintarLobby() {
   soloPanel('fase-lobby');
   $('lobby-codigo').textContent = estado.codigo;
   const c = estado.config;
-  $('lobby-config').innerHTML = [
-    plural(c.rondas, 'ronda', 'rondas'),
-    `hasta ${c.maxJugadores} jugadores`,
-    c.segundosPorTurno ? `${c.segundosPorTurno}s por turno` : 'sin límite de tiempo',
-    c.pistaObligatoria ? 'pista obligatoria' : 'pista opcional',
-    estado.visibilidad === 'privada' ? 'sala privada' : 'sala pública',
-  ]
-    .map((t) => `<span>${t}</span>`)
-    .join('');
+  $('lobby-config').innerHTML =
+    `<span class="destacada">${nombreModo(c.modo)}</span>` +
+    [
+      plural(c.rondas, 'ronda', 'rondas'),
+      `hasta ${c.maxJugadores} jugadores`,
+      c.segundosPorTurno ? `${c.segundosPorTurno}s por turno` : 'sin límite de tiempo',
+      c.pistaObligatoria ? 'pista obligatoria' : 'pista opcional',
+      estado.visibilidad === 'privada' ? 'sala privada' : 'sala pública',
+    ]
+      .map((t) => `<span>${t}</span>`)
+      .join('');
 
   $('lobby-host-config').hidden = !estado.soyHost;
   $('lobby-espera').hidden = estado.soyHost;
   if (estado.soyHost) {
+    const radio = document.querySelector(`input[name="cfg-modo"][value="${c.modo}"]`);
+    if (radio && !document.querySelector('input[name="cfg-modo"]:checked')) radio.checked = true;
     if (document.activeElement !== $('cfg-rondas')) $('cfg-rondas').value = c.rondas;
     if (document.activeElement !== $('cfg-max')) $('cfg-max').value = c.maxJugadores;
     if (document.activeElement !== $('cfg-tiempo')) $('cfg-tiempo').value = c.segundosPorTurno;
@@ -478,9 +518,14 @@ function pintarEscribiendo() {
 }
 
 function pintarAdivinando() {
+  const alPrimero = estado.config.modo === 'primero';
+
   if (estado.turno.soyEscritor) {
     soloPanel('fase-mirando');
     $('mirando-palabra').textContent = estado.turno.palabra || '';
+    $('mirando-nota').textContent = alPrimero
+      ? 'Ganas 20 puntos si alguno la descubre. El turno se corta con el primer acierto.'
+      : 'Ganas 15 puntos por cada jugador que la descubra.';
     const ul = $('mirando-progreso');
     ul.innerHTML = '';
     for (const p of estado.turno.progreso) {
@@ -507,6 +552,9 @@ function pintarAdivinando() {
   soloPanel('fase-adivinar');
   $('adivinar-escritor').textContent = estado.turno.escritorNombre;
   $('adivinar-largo').textContent = estado.turno.largoPalabra;
+  $('adivinar-modo').textContent = alPrimero
+    ? 'Gana el primero que acierte. Si no llegas, igual cobras por tus verdes y amarillas.'
+    : 'Mientras menos intentos te tome, más puntos.';
   const pista = $('adivinar-pista');
   if (estado.turno.pista) {
     pista.textContent = `Pista: ${estado.turno.pista}`;
@@ -577,24 +625,49 @@ function pintarResumen() {
   const ul = $('resumen-lista');
   ul.innerHTML = '';
 
-  const resueltos = (estado.turno && estado.turno.resueltos) || [];
+  const turno = estado.turno;
+  const resueltos = (turno && turno.resueltos) || [];
+  const alPrimero = estado.config.modo === 'primero';
+
   if (!resueltos.length) {
     const li = document.createElement('li');
     li.innerHTML = '<span>Nadie la descubrió esta vez.</span>';
     ul.appendChild(li);
   }
+
   for (const r of resueltos) {
     const li = document.createElement('li');
-    li.innerHTML = `<span>${escapar(r.nombre)} · ${plural(r.intentos, 'intento', 'intentos')}${
-      r.esPrimero ? ' · primero' : ''
-    }</span><span class="gano">+${r.puntos}</span>`;
+    if (alPrimero) li.classList.add('ganador');
+    const detalle = alPrimero
+      ? `Llegó primero en ${plural(r.intentos, 'intento', 'intentos')}`
+      : `${plural(r.intentos, 'intento', 'intentos')}${r.esPrimero ? ' · primero' : ''}`;
+    li.innerHTML =
+      `<span>${escapar(r.nombre)}<span class="detalle">${detalle}</span></span>` +
+      `<span class="gano">+${r.puntos}</span>`;
     ul.appendChild(li);
   }
-  if (estado.turno) {
+
+  // Modo "el primero que adivine": el resto cobra por las letras que llevaba.
+  for (const c of (turno && turno.consuelos) || []) {
     const li = document.createElement('li');
-    li.innerHTML = `<span>${escapar(estado.turno.escritorNombre)} (escribió la palabra)</span><span class="gano">+${
-      15 * resueltos.length
-    }</span>`;
+    const letras = [];
+    if (c.verdes) letras.push(plural(c.verdes, 'verde', 'verdes'));
+    if (c.amarillas) letras.push(plural(c.amarillas, 'amarilla', 'amarillas'));
+    li.innerHTML =
+      `<span>${escapar(c.nombre)}<span class="detalle">${
+        letras.length ? letras.join(' y ') : 'sin letras acertadas'
+      }</span></span>` +
+      (c.puntos ? `<span class="gano">+${c.puntos}</span>` : '<span class="nada">0</span>');
+    ul.appendChild(li);
+  }
+
+  if (turno) {
+    const li = document.createElement('li');
+    li.innerHTML =
+      `<span>${escapar(turno.escritorNombre)}<span class="detalle">escribió la palabra</span></span>` +
+      (turno.puntosEscritor
+        ? `<span class="gano">+${turno.puntosEscritor}</span>`
+        : '<span class="nada">0</span>');
     ul.appendChild(li);
   }
   $('btn-siguiente').hidden = !estado.soyHost;

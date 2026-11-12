@@ -8,7 +8,14 @@
 
 const assert = require('assert');
 const { io } = require('socket.io-client');
-const { evaluarIntento, normalizar, esPalabraValida, puntajeAdivinador } = require('../juego');
+const {
+  evaluarIntento,
+  normalizar,
+  esPalabraValida,
+  puntajeAdivinador,
+  puntajePistas,
+  limpiarConfig,
+} = require('../juego');
 
 const PUERTO = 3999;
 process.env.PORT = PUERTO;
@@ -66,6 +73,26 @@ prueba('menos intentos da mas puntos', () => {
   assert.strictEqual(puntajeAdivinador(1, true), 110);
   assert.strictEqual(puntajeAdivinador(1, false), 100);
   assert.strictEqual(puntajeAdivinador(20, false), 20, 'hay un piso de 20');
+});
+
+prueba('el consuelo usa el mejor intento, no el ultimo', () => {
+  const intentos = [
+    { palabra: 'MANDANA', feedback: evaluarIntento('MANDANA', 'MANZANA') }, // 6 verdes
+    { palabra: 'CAMISAS', feedback: evaluarIntento('CAMISAS', 'MANZANA') }, // menos
+  ];
+  assert.deepStrictEqual(puntajePistas(intentos), { puntos: 48, verdes: 6, amarillas: 0 });
+  assert.strictEqual(puntajePistas([]).puntos, 0, 'sin intentos no hay consuelo');
+});
+
+prueba('el consuelo nunca alcanza al ganador', () => {
+  const todoVerde = [{ palabra: 'ABCDEFGHIJKL', feedback: new Array(12).fill('correcta') }];
+  assert.ok(puntajePistas(todoVerde).puntos < 100);
+});
+
+prueba('el modo por tiempo no acepta reloj en cero', () => {
+  assert.strictEqual(limpiarConfig({ modo: 'tiempo', segundosPorTurno: 0 }).segundosPorTurno, 180);
+  assert.strictEqual(limpiarConfig({ modo: 'primero', segundosPorTurno: 0 }).segundosPorTurno, 0);
+  assert.strictEqual(limpiarConfig({ modo: 'cualquier cosa' }).modo, 'tiempo');
 });
 
 /* ---------- 2. partida completa por sockets ---------- */
@@ -268,7 +295,66 @@ async function main() {
   const tarde = await pedir(f, 'unirse', { codigo: privada.codigo, nombre: 'Fran' });
   prueba('no se puede entrar con la partida empezada', () => assert.ok(!tarde.ok));
 
-  for (const s of [a, b, c, d, e, f]) s.close();
+  console.log('\nModo "el primero que adivine"');
+
+  const g = await conectar('jug-g');
+  const h = await conectar('jug-h');
+  const k = await conectar('jug-k');
+  const salaP = await pedir(g, 'crear', {
+    nombre: 'Gabi',
+    visibilidad: 'privada',
+    config: { modo: 'primero', rondas: 1, maxJugadores: 3, segundosPorTurno: 0 },
+  });
+  assert.ok(salaP.ok);
+  assert.ok((await pedir(h, 'unirse', { codigo: salaP.codigo, nombre: 'Hugo' })).ok);
+  assert.ok((await pedir(k, 'unirse', { codigo: salaP.codigo, nombre: 'Kari' })).ok);
+  await hasta(g, (x) => x.jugadores.length === 3, '3 jugadores');
+  assert.ok((await pedir(g, 'iniciar', {})).ok);
+
+  const porId = { 'jug-g': g, 'jug-h': h, 'jug-k': k };
+  const est = await hasta(g, (x) => x.fase === 'escribiendo', 'listo para escribir');
+  const escr = porId[est.turno.escritorId];
+  const otros = Object.entries(porId).filter(([id]) => id !== est.turno.escritorId);
+  assert.ok((await pedir(escr, 'palabra', { palabra: 'MANZANA', pista: '' })).ok);
+  await hasta(escr, (x) => x.fase === 'adivinando', 'adivinando');
+
+  // El perdedor junta 6 verdes; el otro acierta y corta el turno.
+  const [idLento, lento] = otros[0];
+  const [, rapido] = otros[1];
+  assert.ok((await pedir(lento, 'adivinar', { intento: 'MANDANA' })).ok);
+  const gana = await pedir(rapido, 'adivinar', { intento: 'MANZANA' });
+  assert.ok(gana.ok && gana.acerto);
+
+  const cerrado = await hasta(g, (x) => x.fase === 'resumen', 'el turno se corta solo', 3000);
+
+  prueba('el turno termina apenas alguien acierta', () => {
+    assert.strictEqual(cerrado.fase, 'resumen');
+    assert.strictEqual(cerrado.turno.resueltos.length, 1);
+  });
+
+  prueba('el primero se lleva 100 puntos', () => {
+    assert.strictEqual(cerrado.turno.resueltos[0].puntos, 100);
+  });
+
+  prueba('el resto cobra por sus verdes y amarillas', () => {
+    const consuelo = cerrado.turno.consuelos.find((c) => c.id === idLento);
+    assert.ok(consuelo, 'hay consuelo para el que no acerto');
+    assert.strictEqual(consuelo.verdes, 6);
+    assert.strictEqual(consuelo.puntos, 48);
+    const suPuntaje = cerrado.jugadores.find((j) => j.id === idLento).puntos;
+    assert.strictEqual(suPuntaje, 48);
+  });
+
+  prueba('el consuelo no le gana al que acerto', () => {
+    const ganador = cerrado.turno.resueltos[0];
+    for (const c of cerrado.turno.consuelos) assert.ok(c.puntos < ganador.puntos);
+  });
+
+  prueba('el escritor suma 20 si alguien la descubrio', () => {
+    assert.strictEqual(cerrado.turno.puntosEscritor, 20);
+  });
+
+  for (const s of [a, b, c, d, e, f, g, h, k]) s.close();
 
   console.log(fallos === 0 ? '\nTodo en orden.\n' : `\n${fallos} prueba(s) fallaron.\n`);
   process.exit(fallos === 0 ? 0 : 1);
