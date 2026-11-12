@@ -582,7 +582,11 @@ function pintarAdivinando() {
         estadoTxt.className = 'insignia';
         estadoTxt.textContent = plural(p.intentos, 'intento', 'intentos');
       }
-      li.append(nombre, estadoTxt);
+      const cabeza = document.createElement('div');
+      cabeza.className = 'progreso__cabeza';
+      cabeza.append(nombre, estadoTxt);
+      li.appendChild(cabeza);
+      li.appendChild(miniTablero(p.detalle || [], estado.turno.largoPalabra));
       ul.appendChild(li);
     }
     return;
@@ -604,6 +608,32 @@ function pintarAdivinando() {
   $('btn-rendirse').hidden = yaTermine();
   pintarTablero();
   pintarTeclado();
+}
+
+/** Tablero chico con los intentos de otro jugador, para la vista del escritor. */
+function miniTablero(intentos, largo) {
+  const caja = document.createElement('div');
+  caja.className = 'mini';
+  if (!intentos.length) {
+    const vacio = document.createElement('small');
+    vacio.className = 'mini__vacio';
+    vacio.textContent = 'Todavía sin intentos…';
+    caja.appendChild(vacio);
+    return caja;
+  }
+  for (const it of intentos) {
+    const fila = document.createElement('div');
+    fila.className = 'mini__fila';
+    fila.style.gridTemplateColumns = `repeat(${largo}, auto)`;
+    it.palabra.split('').forEach((letra, k) => {
+      const c = document.createElement('span');
+      c.className = `mini__casilla casilla--${it.feedback[k]}`;
+      c.textContent = letra;
+      fila.appendChild(c);
+    });
+    caja.appendChild(fila);
+  }
+  return caja;
 }
 
 function pintarTablero() {
@@ -772,8 +802,9 @@ setInterval(() => {
     const restan = Math.max(0, Math.ceil((vence - Date.now()) / 1000));
     const min = Math.floor(restan / 60);
     const seg = String(restan % 60).padStart(2, '0');
-    reloj.textContent = `${min}:${seg}`;
-    reloj.classList.toggle('pildora--urgente', restan <= 20);
+    reloj.textContent = `⏱ ${min}:${seg}`;
+    reloj.classList.toggle('reloj--urgente', restan <= 20);
+    reloj.classList.toggle('reloj--critico', restan <= 10);
     reloj.hidden = false;
   } else {
     reloj.hidden = true;
@@ -786,8 +817,26 @@ setInterval(() => {
 }, 250);
 
 $('btn-jugar').addEventListener('click', () => {
-  $('vista-inicio').classList.remove('portada');
-  $('in-nombre').focus();
+  const vista = $('vista-inicio');
+  const titulo = vista.querySelector('.marca__titulo');
+  const reducir = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // FLIP: medimos el titulo antes y despues del cambio y animamos la diferencia.
+  const antes = titulo.getBoundingClientRect();
+  vista.classList.remove('portada');
+  vista.classList.add('entrando');
+  const despues = titulo.getBoundingClientRect();
+  if (!reducir && titulo.animate) {
+    const dx = antes.left + antes.width / 2 - (despues.left + despues.width / 2);
+    const dy = antes.top + antes.height / 2 - (despues.top + despues.height / 2);
+    const escala = antes.width / despues.width;
+    for (const f of titulo.querySelectorAll('.ficha')) f.style.animation = 'none';
+    titulo.animate(
+      [{ transform: `translate(${dx}px, ${dy}px) scale(${escala})` }, { transform: 'none' }],
+      { duration: 650, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+    );
+  }
+  setTimeout(() => vista.classList.remove('entrando'), 1300);
+  $('in-nombre').focus({ preventScroll: true });
 });
 
 /* arranque */

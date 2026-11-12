@@ -544,6 +544,8 @@ class Sala {
               intentos: (this.turno.intentos[j.id] || []).length,
               acerto: this.turno.resueltos.some((r) => r.id === j.id),
               rendido: this.turno.rendidos.includes(j.id),
+              // El escritor ya conoce la palabra, asi que puede ver los intentos de todos.
+              detalle: this.esEscritor(id) ? this.turno.intentos[j.id] || [] : undefined,
             })),
         }
       : null;
