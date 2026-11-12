@@ -90,8 +90,8 @@ prueba('el consuelo nunca alcanza al ganador', () => {
 });
 
 prueba('el modo por tiempo no acepta reloj en cero', () => {
-  assert.strictEqual(limpiarConfig({ modo: 'tiempo', segundosPorTurno: 0 }).segundosPorTurno, 180);
-  assert.strictEqual(limpiarConfig({ modo: 'primero', segundosPorTurno: 0 }).segundosPorTurno, 0);
+  assert.strictEqual(limpiarConfig({ modo: 'tiempo', segundosPorTurno: 0, letrasPorPalabra: 0 }).segundosPorTurno, 0);
+  assert.strictEqual(limpiarConfig({ modo: 'primero', segundosPorTurno: 0, letrasPorPalabra: 0 }).segundosPorTurno, 0);
   assert.strictEqual(limpiarConfig({ modo: 'cualquier cosa' }).modo, 'tiempo');
 });
 
@@ -136,7 +136,7 @@ async function main() {
     nombre: 'Ana',
     nombreSala: 'Mesa de prueba',
     visibilidad: 'publica',
-    config: { rondas: 2, maxJugadores: 4, segundosPorTurno: 0 },
+    config: { rondas: 2, maxJugadores: 4, segundosPorTurno: 0, letrasPorPalabra: 0 },
   });
   assert.ok(creada.ok, 'se crea la sala');
   const codigo = creada.codigo;
@@ -275,7 +275,7 @@ async function main() {
   const privada = await pedir(d, 'crear', {
     nombre: 'Dani',
     visibilidad: 'privada',
-    config: { rondas: 1, maxJugadores: 2, segundosPorTurno: 0 },
+    config: { rondas: 1, maxJugadores: 2, segundosPorTurno: 0, letrasPorPalabra: 0 },
   });
   const publicas = await new Promise((r) => d.emit('salas', r));
   prueba('una sala privada no sale en el listado', () => {
@@ -303,7 +303,7 @@ async function main() {
   const salaP = await pedir(g, 'crear', {
     nombre: 'Gabi',
     visibilidad: 'privada',
-    config: { modo: 'primero', rondas: 1, maxJugadores: 3, segundosPorTurno: 0 },
+    config: { modo: 'primero', rondas: 1, maxJugadores: 3, segundosPorTurno: 0, letrasPorPalabra: 0 },
   });
   assert.ok(salaP.ok);
   assert.ok((await pedir(h, 'unirse', { codigo: salaP.codigo, nombre: 'Hugo' })).ok);

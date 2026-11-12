@@ -14,7 +14,15 @@ const app = express();
 const servidor = http.createServer(app);
 const io = new Server(servidor);
 
-app.use(express.static(path.join(__dirname, 'public')));
+// La portada se sirve con la URL absoluta de la imagen de vista previa (og:image),
+// porque WhatsApp, Discord, etc. no aceptan rutas relativas.
+const fs = require('fs');
+const PORTADA = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+app.get(['/', '/index.html'], (req, res) => {
+  const proto = req.get('x-forwarded-proto') || req.protocol;
+  res.type('html').send(PORTADA.replaceAll('__ORIGEN__', `${proto}://${req.get('host')}`));
+});
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.get('/salud', (_req, res) => res.json({ ok: true, salas: salas.size }));
 
 /** @type {Map<string, Sala>} */

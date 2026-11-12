@@ -99,7 +99,8 @@ $('btn-crear').addEventListener('click', () => {
         modo: document.querySelector('input[name="modo"]:checked').value,
         rondas: $('in-rondas').value,
         maxJugadores: $('in-max').value,
-        segundosPorTurno: $('in-tiempo').value,
+        segundosPorTurno: $('in-sin-limite').checked ? 0 : $('in-tiempo').value,
+        letrasPorPalabra: $('in-letras').value,
         pistaObligatoria: $('in-pista-obligatoria').checked,
       },
     },
@@ -208,6 +209,30 @@ $('btn-codigo').addEventListener('click', async () => {
   }
 });
 
+$('btn-compartir').addEventListener('click', async () => {
+  if (!estado) return;
+  const url = `${location.origin}/#${estado.codigo}`;
+  const datos = {
+    title: 'Palabrear',
+    text: `¡Únete a mi sala de Palabrear! Código: ${estado.codigo}`,
+    url,
+  };
+  if (navigator.share) {
+    try {
+      await navigator.share(datos);
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    avisar('Enlace de la sala copiado.');
+  } catch {
+    avisar(`Comparte este enlace: ${url}`);
+  }
+});
+
 $('btn-empezar').addEventListener('click', () => {
   socket.emit('iniciar', {}, (r) => r && !r.ok && avisar(r.error));
 });
@@ -219,7 +244,8 @@ $('btn-guardar-config').addEventListener('click', () => {
       modo: (document.querySelector('input[name="cfg-modo"]:checked') || {}).value,
       rondas: $('cfg-rondas').value,
       maxJugadores: $('cfg-max').value,
-      segundosPorTurno: $('cfg-tiempo').value,
+      segundosPorTurno: $('cfg-sin-limite').checked ? 0 : $('cfg-tiempo').value,
+      letrasPorPalabra: $('cfg-letras').value,
     },
     (r) => avisar(r && r.ok ? 'Ajustes guardados.' : (r && r.error) || 'No se pudo guardar.')
   );
@@ -486,6 +512,7 @@ function pintarLobby() {
       plural(c.rondas, 'ronda', 'rondas'),
       `hasta ${c.maxJugadores} jugadores`,
       c.segundosPorTurno ? `${c.segundosPorTurno}s por turno` : 'sin límite de tiempo',
+      c.letrasPorPalabra ? `palabras de ${c.letrasPorPalabra} letras` : 'palabras de 3 a 12 letras',
       c.pistaObligatoria ? 'pista obligatoria' : 'pista opcional',
       estado.visibilidad === 'privada' ? 'sala privada' : 'sala pública',
     ]
@@ -499,7 +526,12 @@ function pintarLobby() {
     if (radio && !document.querySelector('input[name="cfg-modo"]:checked')) radio.checked = true;
     if (document.activeElement !== $('cfg-rondas')) $('cfg-rondas').value = c.rondas;
     if (document.activeElement !== $('cfg-max')) $('cfg-max').value = c.maxJugadores;
-    if (document.activeElement !== $('cfg-tiempo')) $('cfg-tiempo').value = c.segundosPorTurno;
+    if (document.activeElement !== $('cfg-tiempo')) $('cfg-tiempo').value = c.segundosPorTurno || 180;
+    if (document.activeElement !== $('cfg-sin-limite')) {
+      $('cfg-sin-limite').checked = !c.segundosPorTurno;
+      $('cfg-tiempo').disabled = !c.segundosPorTurno;
+    }
+    if (document.activeElement !== $('cfg-letras')) $('cfg-letras').value = String(c.letrasPorPalabra || 0);
     $('btn-empezar').disabled = estado.jugadores.filter((j) => j.conectado).length < 2;
   }
 }
@@ -507,6 +539,13 @@ function pintarLobby() {
 function pintarEscribiendo() {
   if (estado.turno && estado.turno.soyEscritor) {
     soloPanel('fase-escribir');
+    const fijo = estado.config.letrasPorPalabra;
+    $('in-palabra').maxLength = fijo || 12;
+    if ($('in-palabra').value.length > $('in-palabra').maxLength) {
+      $('in-palabra').value = $('in-palabra').value.slice(0, $('in-palabra').maxLength);
+    }
+    $('texto-escribir').textContent =
+      `Elige una palabra de ${fijo ? `exactamente ${fijo}` : '3 a 12'} letras. Si quieres, deja una pista.`;
     $('pista-opcional').textContent = estado.config.pistaObligatoria ? '(obligatoria)' : '(opcional)';
     if (document.activeElement !== $('in-palabra') && document.activeElement !== $('in-pista')) {
       $('in-palabra').focus();
@@ -746,9 +785,20 @@ setInterval(() => {
   }
 }, 250);
 
+$('btn-jugar').addEventListener('click', () => {
+  $('vista-inicio').classList.remove('portada');
+  $('in-nombre').focus();
+});
+
 /* arranque */
 mostrarVista('inicio');
 if (location.hash) {
   const codigo = location.hash.replace('#', '').toUpperCase();
   if (/^[A-Z0-9]{4,6}$/.test(codigo)) $('in-codigo').value = codigo;
+}
+
+for (const [check, input] of [['in-sin-limite', 'in-tiempo'], ['cfg-sin-limite', 'cfg-tiempo']]) {
+  $(check).addEventListener('change', () => {
+    $(input).disabled = $(check).checked;
+  });
 }

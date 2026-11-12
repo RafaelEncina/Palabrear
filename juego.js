@@ -129,13 +129,15 @@ function limpiarConfig(config = {}) {
   };
   const modo = config.modo === 'primero' ? 'primero' : 'tiempo';
   let segundos = n(config.segundosPorTurno, 180, 0, 900); // 0 = sin limite
-  // En el modo por tiempo el reloj es la gracia, asi que no puede ir en cero.
-  if (modo === 'tiempo' && segundos < 30) segundos = 180;
+  if (segundos > 0 && segundos < 30) segundos = 30;
+  // 5 = largo fijo estilo Wordle; 0 = cualquier largo entre LARGO_MIN y LARGO_MAX.
+  const letras = String(config.letrasPorPalabra) === '0' ? 0 : 5;
   return {
     modo,
     rondas: n(config.rondas, 2, 1, 10),
     maxJugadores: n(config.maxJugadores, 6, 2, 12),
     segundosPorTurno: segundos,
+    letrasPorPalabra: letras,
     pistaObligatoria: Boolean(config.pistaObligatoria),
   };
 }
@@ -272,6 +274,10 @@ class Sala {
         ok: false,
         error: `La palabra debe tener entre ${LARGO_MIN} y ${LARGO_MAX} letras, sin numeros ni espacios.`,
       };
+    }
+    const fijo = this.config.letrasPorPalabra;
+    if (fijo && normalizar(palabra).length !== fijo) {
+      return { ok: false, error: `En esta sala la palabra debe tener exactamente ${fijo} letras.` };
     }
     const limpia = String(pista || '').trim().slice(0, 120);
     if (this.config.pistaObligatoria && !limpia) {

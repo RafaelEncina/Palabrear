@@ -15,8 +15,8 @@
   --acento-suave: rgba(163, 118, 63, 0.12);
   --acento-borde: rgba(163, 118, 63, 0.38);
 
-  --correcta: #6aaa64;
-  --presente: #cfa233;
+  --correcta: #43b649;
+  --presente: #f2b705;
   --ausente: #a89e90;
   --texto-correcta: #11240f;
   --texto-presente: #241a05;
@@ -27,8 +27,8 @@
   --error: #b2432a;
   --exito: #2f7a35;
   --ok-texto: #2f7a35;
-  --ok-suave: rgba(106, 170, 100, 0.16);
-  --ok-borde: rgba(106, 170, 100, 0.45);
+  --ok-suave: rgba(67, 182, 73, 0.16);
+  --ok-borde: rgba(67, 182, 73, 0.45);
 
   --pista-bg: rgba(207, 162, 51, 0.16);
   --pista-borde: rgba(207, 162, 51, 0.5);
@@ -39,7 +39,7 @@
   --urgente-borde: #e9bdaf;
 
   --brillo1: rgba(163, 118, 63, 0.1);
-  --brillo2: rgba(106, 170, 100, 0.1);
+  --brillo2: rgba(67, 182, 73, 0.1);
   --sombra: 0 10px 28px rgba(92, 70, 44, 0.1);
 
   --radio: 14px;
@@ -62,8 +62,8 @@
   --acento-suave: rgba(220, 192, 154, 0.16);
   --acento-borde: rgba(220, 192, 154, 0.42);
 
-  --correcta: #5fb45f;
-  --presente: #d9a33c;
+  --correcta: #3fc24a;
+  --presente: #f5b800;
   --ausente: #46424f;
   --texto-correcta: #10210f;
   --texto-presente: #241a05;
@@ -187,7 +187,7 @@ button, input { font-family: inherit; font-size: 1rem; color: inherit; }
 
 fieldset.campo { border: 0; padding: 0; margin: 0 0 14px; }
 
-input[type="text"], input[type="number"] {
+input[type="text"], input[type="number"], select {
   width: 100%;
   padding: 11px 13px;
   background: var(--tinta);
@@ -196,7 +196,7 @@ input[type="text"], input[type="number"] {
   outline: none;
 }
 
-input[type="text"]:focus, input[type="number"]:focus {
+input[type="text"]:focus, input[type="number"]:focus, select:focus {
   border-color: var(--acento);
   box-shadow: 0 0 0 3px var(--acento-suave);
 }
@@ -579,4 +579,67 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--acento); width
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
+.pie a { color: inherit; font-weight: 600; }
+.check-chico { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.85rem; color: var(--suave); cursor: pointer; }
+input:disabled { opacity: 0.5; }
+
+/* Las letras del titulo saltan en orden al cargar la pagina. */
+@keyframes saltar {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-0.45em); }
+  60% { transform: translateY(0.05em); }
+}
+.marca__titulo .ficha { animation: saltar 0.5s ease-out both; }
+.marca__titulo .ficha:nth-child(1) { animation-delay: 0.1s; }
+.marca__titulo .ficha:nth-child(2) { animation-delay: 0.2s; }
+.marca__titulo .ficha:nth-child(3) { animation-delay: 0.3s; }
+.marca__titulo .ficha:nth-child(4) { animation-delay: 0.4s; }
+.marca__titulo .ficha:nth-child(5) { animation-delay: 0.5s; }
+.marca__titulo .ficha:nth-child(6) { animation-delay: 0.6s; }
+.marca__titulo .ficha:nth-child(7) { animation-delay: 0.7s; }
+.marca__titulo .ficha:nth-child(8) { animation-delay: 0.8s; }
+.marca__titulo .ficha:nth-child(9) { animation-delay: 0.9s; }
+@media (prefers-reduced-motion: reduce) {
+  .marca__titulo .ficha { animation: none; }
+}
+
+.compartir { margin: 14px 0 18px; }
+.boton--compartir {
+  background: var(--ok-suave);
+  border: 1px solid var(--ok-borde);
+  color: var(--ok-texto);
+  font-weight: 600;
+}
+.boton--compartir:hover { background: rgba(67, 182, 73, 0.26); }
+
+/* Portada: solo el titulo y el boton "Jugar" hasta que se presiona. */
+.boton--jugar { display: none; }
+.portada {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.portada > :not(.marca):not(.pie) { display: none !important; }
+.portada .marca { margin: auto 0; }
+.portada .marca .tema { position: absolute; top: 16px; right: 16px; margin: 0; }
+.portada .marca__titulo { font-size: clamp(1.6rem, 9vw, 3.6rem); margin-bottom: 18px; }
+.portada .marca__bajada { display: none; }
+.portada .boton--jugar {
+  display: inline-flex;
+  margin-top: 28px;
+  padding: 14px 48px;
+  font-size: 1.2rem;
+  animation: aparecer 0.4s ease-out 1.2s both;
+}
+.portada .pie { margin-top: 0; }
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .portada .boton--jugar { animation: none; }
 }

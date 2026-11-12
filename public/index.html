@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Palabrear</title>
 <meta name="description" content="Wordle por turnos para jugar con amigos: cada uno escribe una palabra y el resto la descubre." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Palabrear" />
+<meta property="og:title" content="¡Te invitaron a jugar Palabrear!" />
+<meta property="og:description" content="Wordle por turnos con amigos: cada uno escribe una palabra y el resto la descubre. Entra a la sala y juega." />
+<meta property="og:image" content="__ORIGEN__/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:locale" content="es_CL" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="¡Te invitaron a jugar Palabrear!" />
+<meta name="twitter:description" content="Wordle por turnos con amigos: cada uno escribe una palabra y el resto la descubre." />
+<meta name="twitter:image" content="__ORIGEN__/og.png" />
 <meta name="theme-color" content="#f7f2e9" />
 <script>
   // Antes de pintar, para que no parpadee el tema al recargar.
@@ -23,7 +35,7 @@
 <body>
 
 <!-- ============ INICIO ============ -->
-<main id="vista-inicio" class="vista">
+<main id="vista-inicio" class="vista portada">
   <header class="marca">
     <button id="btn-tema-inicio" class="tema" type="button" title="Cambiar a modo oscuro" aria-label="Cambiar tema">🌙</button>
     <h1 class="marca__titulo">
@@ -33,6 +45,7 @@
       Wordle por turnos. Cada uno elige una palabra, el resto la descubre.
       Mientras menos intentos te tome, más puntos.
     </p>
+    <button id="btn-jugar" class="boton boton--primario boton--jugar" type="button">Jugar</button>
   </header>
 
   <section class="tarjeta">
@@ -89,8 +102,15 @@
       </label>
       <label class="campo">
         <span class="campo__rotulo">Segundos por turno</span>
-        <input id="in-tiempo" type="number" min="0" max="900" step="30" value="180" />
-        <small class="ayuda">0 = sin límite de tiempo.</small>
+        <input id="in-tiempo" type="number" min="30" max="900" step="30" value="180" />
+        <label class="check-chico"><input id="in-sin-limite" type="checkbox" /> Sin límite de tiempo</label>
+      </label>
+      <label class="campo">
+        <span class="campo__rotulo">Letras por palabra</span>
+        <select id="in-letras">
+          <option value="5">5 (Wordle original)</option>
+          <option value="0">De 3 a 12</option>
+        </select>
       </label>
       <fieldset class="campo">
         <span class="campo__rotulo">Visibilidad</span>
@@ -119,7 +139,7 @@
     <ul id="lista-salas" class="lista-salas"></ul>
   </section>
 
-  <footer class="pie">Hecho para jugar con amigos · Palabrear</footer>
+  <footer class="pie">Hecho para jugar con amigos · Palabrear · Creado por <a href="https://rafaelencina.vercel.app" target="_blank" rel="noopener">Rafael Encina</a></footer>
 </main>
 
 <!-- ============ SALA ============ -->
@@ -148,6 +168,9 @@
           Comparte el código <strong id="lobby-codigo"></strong> para que entren.
           Hacen falta al menos 2 jugadores.
         </p>
+        <div class="compartir">
+          <button id="btn-compartir" class="boton boton--compartir boton--chico" type="button">🔗 Compartir enlace de sala</button>
+        </div>
         <div id="lobby-config" class="resumen-config"></div>
         <div id="lobby-host-config" hidden>
           <fieldset class="campo">
@@ -168,7 +191,15 @@
             </label>
             <label class="campo">
               <span class="campo__rotulo">Seg. por turno</span>
-              <input id="cfg-tiempo" type="number" min="0" max="900" step="30" />
+              <input id="cfg-tiempo" type="number" min="30" max="900" step="30" />
+              <label class="check-chico"><input id="cfg-sin-limite" type="checkbox" /> Sin límite</label>
+            </label>
+            <label class="campo">
+              <span class="campo__rotulo">Letras por palabra</span>
+              <select id="cfg-letras">
+          <option value="5">5 (Wordle original)</option>
+          <option value="0">De 3 a 12</option>
+        </select>
             </label>
           </div>
           <div class="acciones">
@@ -184,7 +215,7 @@
       <!-- escribiendo -->
       <div id="fase-escribir" class="panel" hidden>
         <h2 class="panel__titulo">Te toca escribir</h2>
-        <p class="panel__texto">Elige una palabra de 3 a 12 letras. Si quieres, deja una pista.</p>
+        <p id="texto-escribir" class="panel__texto">Elige una palabra de 3 a 12 letras. Si quieres, deja una pista.</p>
         <label class="campo">
           <span class="campo__rotulo">La palabra</span>
           <input id="in-palabra" type="text" maxlength="12" class="input-palabra" autocomplete="off" spellcheck="false" placeholder="MANZANA" />
@@ -261,7 +292,7 @@
         <ul id="marcador" class="marcador"></ul>
       </div>
       <div class="panel panel--lateral">
-        <h3 class="lateral__titulo">Lo que pasó</h3>
+        <h3 class="lateral__titulo">Eventos</h3>
         <ul id="registro" class="registro"></ul>
       </div>
       <div class="panel panel--lateral panel--chat">
