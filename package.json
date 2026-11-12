@@ -1,0 +1,28 @@
+{
+  "name": "palabrear",
+  "version": "1.0.0",
+  "description": "Palabrear — wordle por turnos para jugar con amigos en salas publicas o privadas",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/partida.test.js"
+  },
+  "keywords": [
+    "wordle",
+    "juego",
+    "multijugador",
+    "socket.io"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

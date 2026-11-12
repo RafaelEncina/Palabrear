@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Palabrear</title>
+<meta name="description" content="Wordle por turnos para jugar con amigos: cada uno escribe una palabra y el resto la descubre." />
+<meta name="theme-color" content="#141318" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff7a59'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='20' font-weight='bold' text-anchor='middle' fill='%23141318'%3EP%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ============ INICIO ============ -->
+<main id="vista-inicio" class="vista">
+  <header class="marca">
+    <h1 class="marca__titulo">
+      <span class="ficha ficha--correcta">P</span><span class="ficha">a</span><span class="ficha ficha--presente">l</span><span class="ficha">a</span><span class="ficha ficha--correcta">b</span><span class="ficha">r</span><span class="ficha">e</span><span class="ficha ficha--presente">a</span><span class="ficha">r</span>
+    </h1>
+    <p class="marca__bajada">
+      Wordle por turnos. Cada uno elige una palabra, el resto la descubre.
+      Mientras menos intentos te tome, más puntos.
+    </p>
+  </header>
+
+  <section class="tarjeta">
+    <label class="campo">
+      <span class="campo__rotulo">Tu nombre</span>
+      <input id="in-nombre" type="text" maxlength="16" placeholder="Rafa" autocomplete="nickname" />
+    </label>
+
+    <div class="acciones">
+      <button id="btn-abrir-crear" class="boton boton--primario">Crear una sala</button>
+      <div class="unirse">
+        <input id="in-codigo" type="text" maxlength="6" placeholder="CÓDIGO" class="input-codigo" autocomplete="off" />
+        <button id="btn-unirse" class="boton">Entrar</button>
+      </div>
+    </div>
+    <p id="error-inicio" class="error" hidden></p>
+  </section>
+
+  <section class="tarjeta" id="panel-crear" hidden>
+    <h2 class="tarjeta__titulo">Nueva sala</h2>
+    <label class="campo">
+      <span class="campo__rotulo">Nombre de la sala <em>(opcional)</em></span>
+      <input id="in-nombre-sala" type="text" maxlength="40" placeholder="Los del jueves" />
+    </label>
+    <div class="grilla-config">
+      <label class="campo">
+        <span class="campo__rotulo">Rondas</span>
+        <input id="in-rondas" type="number" min="1" max="10" value="2" />
+        <small class="ayuda">En cada ronda, todos escriben una vez.</small>
+      </label>
+      <label class="campo">
+        <span class="campo__rotulo">Máx. jugadores</span>
+        <input id="in-max" type="number" min="2" max="12" value="6" />
+      </label>
+      <label class="campo">
+        <span class="campo__rotulo">Segundos por turno</span>
+        <input id="in-tiempo" type="number" min="0" max="900" step="30" value="180" />
+        <small class="ayuda">0 = sin límite de tiempo.</small>
+      </label>
+      <fieldset class="campo">
+        <span class="campo__rotulo">Visibilidad</span>
+        <div class="opciones">
+          <label><input type="radio" name="visibilidad" value="publica" checked /> Pública</label>
+          <label><input type="radio" name="visibilidad" value="privada" /> Privada</label>
+        </div>
+        <small class="ayuda">La privada solo se entra con el código.</small>
+      </fieldset>
+    </div>
+    <label class="interruptor">
+      <input id="in-pista-obligatoria" type="checkbox" />
+      <span>Obligar a dejar una pista</span>
+    </label>
+    <div class="acciones">
+      <button id="btn-crear" class="boton boton--primario">Crear y entrar</button>
+      <button id="btn-cancelar-crear" class="boton boton--fantasma">Cancelar</button>
+    </div>
+  </section>
+
+  <section class="tarjeta">
+    <div class="tarjeta__cabecera">
+      <h2 class="tarjeta__titulo">Salas públicas</h2>
+      <button id="btn-refrescar" class="boton boton--fantasma boton--chico">Actualizar</button>
+    </div>
+    <ul id="lista-salas" class="lista-salas"></ul>
+  </section>
+
+  <footer class="pie">Hecho para jugar con amigos · Palabrear</footer>
+</main>
+
+<!-- ============ SALA ============ -->
+<main id="vista-sala" class="vista" hidden>
+  <header class="barra">
+    <div class="barra__izq">
+      <button id="btn-salir" class="boton boton--fantasma boton--chico" title="Volver al inicio">←</button>
+      <div>
+        <strong id="sala-nombre" class="barra__nombre">Sala</strong>
+        <button id="btn-codigo" class="codigo" title="Copiar el código">····</button>
+      </div>
+    </div>
+    <div class="barra__der">
+      <span id="sala-progreso" class="pildora"></span>
+      <span id="sala-reloj" class="pildora pildora--reloj" hidden></span>
+    </div>
+  </header>
+
+  <div class="columnas">
+    <section class="escenario">
+      <!-- lobby -->
+      <div id="fase-lobby" class="panel" hidden>
+        <h2 class="panel__titulo">Esperando jugadores</h2>
+        <p class="panel__texto">
+          Comparte el código <strong id="lobby-codigo"></strong> para que entren.
+          Hacen falta al menos 2 jugadores.
+        </p>
+        <div id="lobby-config" class="resumen-config"></div>
+        <div id="lobby-host-config" hidden>
+          <div class="grilla-config grilla-config--compacta">
+            <label class="campo">
+              <span class="campo__rotulo">Rondas</span>
+              <input id="cfg-rondas" type="number" min="1" max="10" />
+            </label>
+            <label class="campo">
+              <span class="campo__rotulo">Máx. jugadores</span>
+              <input id="cfg-max" type="number" min="2" max="12" />
+            </label>
+            <label class="campo">
+              <span class="campo__rotulo">Seg. por turno</span>
+              <input id="cfg-tiempo" type="number" min="0" max="900" step="30" />
+            </label>
+          </div>
+          <div class="acciones">
+            <button id="btn-guardar-config" class="boton boton--fantasma boton--chico">Guardar ajustes</button>
+            <button id="btn-empezar" class="boton boton--primario">Empezar la partida</button>
+          </div>
+        </div>
+        <p id="lobby-espera" class="panel__texto panel__texto--suave" hidden>
+          El anfitrión arranca la partida cuando estén todos.
+        </p>
+      </div>
+
+      <!-- escribiendo -->
+      <div id="fase-escribir" class="panel" hidden>
+        <h2 class="panel__titulo">Te toca escribir</h2>
+        <p class="panel__texto">Elige una palabra de 3 a 12 letras. Si quieres, deja una pista.</p>
+        <label class="campo">
+          <span class="campo__rotulo">La palabra</span>
+          <input id="in-palabra" type="text" maxlength="12" class="input-palabra" autocomplete="off" spellcheck="false" placeholder="MANZANA" />
+        </label>
+        <label class="campo">
+          <span class="campo__rotulo">Pista <em id="pista-opcional">(opcional)</em></span>
+          <input id="in-pista" type="text" maxlength="120" placeholder="Se come y hay una roja famosa" />
+        </label>
+        <div class="acciones">
+          <button id="btn-enviar-palabra" class="boton boton--primario">Listo, que adivinen</button>
+        </div>
+        <p id="error-palabra" class="error" hidden></p>
+      </div>
+
+      <div id="fase-esperando-palabra" class="panel panel--centrado" hidden>
+        <div class="puntitos"><span></span><span></span><span></span></div>
+        <h2 class="panel__titulo"><span id="esperando-nombre"></span> está eligiendo una palabra</h2>
+        <p class="panel__texto panel__texto--suave">Prepárate.</p>
+      </div>
+
+      <!-- adivinando: vista del adivinador -->
+      <div id="fase-adivinar" hidden>
+        <div class="cabecera-juego">
+          <p class="dato">
+            <strong id="adivinar-escritor"></strong> eligió una palabra de
+            <strong id="adivinar-largo"></strong> letras
+          </p>
+          <p id="adivinar-pista" class="pista" hidden></p>
+        </div>
+        <div id="tablero" class="tablero" aria-live="polite"></div>
+        <p id="estado-intento" class="estado-intento"></p>
+        <div id="teclado" class="teclado"></div>
+        <div class="acciones acciones--centro">
+          <button id="btn-rendirse" class="boton boton--fantasma boton--chico">Me rindo</button>
+        </div>
+      </div>
+
+      <!-- adivinando: vista del escritor -->
+      <div id="fase-mirando" class="panel" hidden>
+        <h2 class="panel__titulo">Tu palabra: <span id="mirando-palabra" class="palabra-revelada"></span></h2>
+        <p class="panel__texto panel__texto--suave">Ganas 15 puntos por cada jugador que la descubra.</p>
+        <ul id="mirando-progreso" class="progreso"></ul>
+        <div class="acciones">
+          <button id="btn-cortar" class="boton boton--fantasma boton--chico">Cerrar el turno ya</button>
+        </div>
+      </div>
+
+      <!-- resumen -->
+      <div id="fase-resumen" class="panel panel--centrado" hidden>
+        <p class="panel__texto panel__texto--suave">La palabra era</p>
+        <h2 class="palabra-grande" id="resumen-palabra"></h2>
+        <ul id="resumen-lista" class="resumen-lista"></ul>
+        <p class="panel__texto panel__texto--suave" id="resumen-cuenta"></p>
+        <div class="acciones acciones--centro">
+          <button id="btn-siguiente" class="boton boton--primario" hidden>Siguiente turno</button>
+        </div>
+      </div>
+
+      <!-- fin -->
+      <div id="fase-fin" class="panel panel--centrado" hidden>
+        <h2 class="panel__titulo">Fin de la partida</h2>
+        <ol id="podio" class="podio"></ol>
+        <div class="acciones acciones--centro">
+          <button id="btn-revancha" class="boton boton--primario" hidden>Revancha</button>
+          <button id="btn-salir-fin" class="boton boton--fantasma">Volver al inicio</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="lateral">
+      <div class="panel panel--lateral">
+        <h3 class="lateral__titulo">Marcador</h3>
+        <ul id="marcador" class="marcador"></ul>
+      </div>
+      <div class="panel panel--lateral">
+        <h3 class="lateral__titulo">Lo que pasó</h3>
+        <ul id="registro" class="registro"></ul>
+      </div>
+      <div class="panel panel--lateral panel--chat">
+        <h3 class="lateral__titulo">Chat</h3>
+        <ul id="chat" class="chat"></ul>
+        <form id="form-chat" class="form-chat">
+          <input id="in-chat" type="text" maxlength="200" placeholder="Escribe algo…" autocomplete="off" />
+          <button class="boton boton--chico">Enviar</button>
+        </form>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div id="avisos" class="avisos" aria-live="polite"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

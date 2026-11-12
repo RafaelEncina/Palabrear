@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: palabrear
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /salud
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
